@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>일정 관리</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <button type="button" class="icon-btn" id="menuBtn" aria-label="메뉴 열기">
+          <span class="hamburger"></span>
+        </button>
+        <div class="topbar-title">
+          <p class="eyebrow">Daily Plan</p>
+          <h1>일정 관리</h1>
+        </div>
+        <button type="button" class="text-btn" id="todayBtn">오늘</button>
+      </header>
+
+      <main class="calendar-panel">
+        <div class="month-nav">
+          <button type="button" class="nav-btn" id="prevMonth" aria-label="이전 달">‹</button>
+          <h2 id="monthLabel"></h2>
+          <button type="button" class="nav-btn" id="nextMonth" aria-label="다음 달">›</button>
+        </div>
+        <div class="weekday-row" id="weekdayRow"></div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <p class="hint">날짜를 눌러 일정·일기를 추가하고, 일정을 눌러 수정할 수 있습니다. +숫자를 누르면 그날의 일정을 모두 볼 수 있어요. 접힌 종이 표시는 일기입니다.</p>
+      </main>
+    </div>
+
+    <aside class="drawer" id="drawer" aria-hidden="true">
+      <div class="drawer-panel">
+        <div class="drawer-head">
+          <h2>메뉴</h2>
+          <button type="button" class="icon-btn close" id="closeMenu" aria-label="메뉴 닫기">×</button>
+        </div>
+        <nav class="menu-list">
+          <button type="button" class="menu-item" data-action="today">오늘로 이동</button>
+          <button type="button" class="menu-item" data-action="add">새 일정 추가</button>
+          <button type="button" class="menu-item" data-action="list">전체 일정 보기</button>
+          <button type="button" class="menu-item" data-action="diary">오늘 일기 쓰기</button>
+          <button type="button" class="menu-item" data-action="diaryBook">일기 보기</button>
+          <button type="button" class="menu-item" data-action="lock">일기 잠금 설정</button>
+          <button type="button" class="menu-item" data-action="export">백업 내보내기</button>
+          <button type="button" class="menu-item" data-action="import">백업 가져오기</button>
+        </nav>
+        <div class="upcoming" id="upcomingList"></div>
+      </div>
+    </aside>
+
+    <div class="modal" id="eventModal" aria-hidden="true">
+      <div class="modal-card">
+        <h3 id="modalTitle">일정 추가</h3>
+        <form id="eventForm">
+          <input type="hidden" id="eventId" />
+          <div class="type-toggle" id="typeToggle" role="radiogroup" aria-label="종류">
+            <label class="type-option selected">
+              <input type="radio" name="eventType" value="event" checked />
+              일정
+            </label>
+            <label class="type-option">
+              <input type="radio" name="eventType" value="diary" />
+              일기
+            </label>
+          </div>
+          <p class="diary-notice" id="diaryNotice" hidden>이 날짜에 작성한 일기를 불러왔습니다.</p>
+          <div class="date-range">
+            <label>
+              <span id="dateLabel">시작일</span>
+              <input type="date" id="eventDate" required />
+            </label>
+            <label class="event-only">
+              종료일 <span class="optional">(선택, 기간 일정)</span>
+              <input type="date" id="eventEndDate" />
+            </label>
+          </div>
+          <label>
+            <span id="titleLabel">제목</span>
+            <input type="text" id="eventTitle" maxlength="40" placeholder="예: 팀 미팅" required />
+          </label>
+          <div class="field event-only">
+            <span class="field-label">시간 <span class="optional">(시작일 기준)</span></span>
+            <div class="time-picker">
+              <select id="timeAmpm" aria-label="오전/오후">
+                <option value="">시간 없음</option>
+                <option value="am">오전</option>
+                <option value="pm">오후</option>
+              </select>
+              <select id="timeHour" aria-label="시" disabled></select>
+              <select id="timeMinute" aria-label="분" disabled></select>
+            </div>
+          </div>
+          <label>
+            <span id="memoLabel">메모</span>
+            <textarea id="eventMemo" rows="3" placeholder="간단한 메모"></textarea>
+          </label>
+          <div class="field event-only">
+            <span class="field-label">색상</span>
+            <div class="color-picker" id="colorPicker" role="radiogroup" aria-label="색상"></div>
+          </div>
+          <label class="check event-only">
+            <input type="checkbox" id="eventDone" />
+            완료 처리
+          </label>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" id="deleteEvent">삭제</button>
+            <button type="button" class="ghost-btn" id="cancelEvent">취소</button>
+            <button type="submit" class="primary-btn">저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="dayModal" aria-hidden="true">
+      <div class="modal-card wide">
+        <div class="drawer-head">
+          <h3 id="dayTitle"></h3>
+          <button type="button" class="icon-btn close" id="closeDay" aria-label="닫기">×</button>
+        </div>
+        <div class="day-body" id="dayBody"></div>
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" id="dayAddDiary">일기 쓰기</button>
+          <button type="button" class="primary-btn" id="dayAddEvent">일정 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" id="listModal" aria-hidden="true">
+      <div class="modal-card wide">
+        <div class="drawer-head">
+          <h3>전체 일정</h3>
+          <button type="button" class="icon-btn close" id="closeList" aria-label="닫기">×</button>
+        </div>
+        <div class="all-events" id="allEvents"></div>
+      </div>
+    </div>
+
+    <div class="modal book-modal" id="bookModal" aria-hidden="true" data-font="hand">
+      <div class="book-wrap">
+        <div class="book-bar">
+          <div class="book-tools">
+            <span class="book-tool">
+              날짜 이동
+              <input type="date" id="bookJump" aria-label="날짜로 이동" />
+            </span>
+            <span class="book-fonts" role="group" aria-label="글씨체">
+              <button type="button" data-font="hand">손글씨</button>
+              <button type="button" data-font="serif">바탕체</button>
+            </span>
+          </div>
+          <button type="button" class="icon-btn close" id="closeBook" aria-label="닫기">×</button>
+        </div>
+        <div class="book">
+          <button type="button" class="book-nav" id="bookPrev" aria-label="이전 쪽">‹</button>
+          <div class="book-pages" id="bookPages"></div>
+          <button type="button" class="book-nav" id="bookNext" aria-label="다음 쪽">›</button>
+        </div>
+        <p class="book-indicator" id="bookIndicator"></p>
+      </div>
+    </div>
+
+    <div class="modal" id="lockModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="drawer-head">
+          <h3 id="lockTitle">일기 잠금</h3>
+          <button type="button" class="icon-btn close" id="closeLock" aria-label="닫기">×</button>
+        </div>
+
+        <form class="lock-section" id="lockSetupForm" data-section="setup" hidden>
+          <p class="lock-desc">
+            일기 내용을 비밀번호로 암호화해서 저장합니다. 일정은 잠기지 않고, 일기가 있는 날짜의
+            접힌 종이 표시는 그대로 보입니다.
+          </p>
+          <label>
+            새 비밀번호 (6자 이상)
+            <input type="password" id="lockNewPw" autocomplete="new-password" required />
+          </label>
+          <label>
+            비밀번호 확인
+            <input type="password" id="lockNewPw2" autocomplete="new-password" required />
+          </label>
+          <label class="check lock-ack">
+            <input type="checkbox" id="lockAck" required />
+            비밀번호를 잊으면 일기를 복구할 수 없다는 점을 이해했습니다.
+          </label>
+          <p class="lock-error" hidden></p>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-lock-close>취소</button>
+            <button type="submit" class="primary-btn">잠금 사용 시작</button>
+          </div>
+        </form>
+
+        <form class="lock-section" id="lockUnlockForm" data-section="unlock" hidden>
+          <p class="lock-desc">잠긴 일기를 열려면 비밀번호를 입력하세요.</p>
+          <label>
+            비밀번호
+            <input type="password" id="lockUnlockPw" autocomplete="current-password" required />
+          </label>
+          <p class="lock-error" hidden></p>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-lock-close>취소</button>
+            <button type="submit" class="primary-btn">열기</button>
+          </div>
+        </form>
+
+        <div class="lock-section" id="lockManage" data-section="manage" hidden>
+          <p class="lock-desc" id="lockStatus"></p>
+          <div class="lock-actions">
+            <button type="button" class="lock-btn" id="lockNowBtn">지금 잠그기</button>
+            <button type="button" class="lock-btn" id="lockChangeBtn">비밀번호 변경</button>
+            <button type="button" class="lock-btn" id="lockDisableBtn">잠금 사용 안 함</button>
+          </div>
+          <p class="lock-warn">
+            비밀번호를 잊으면 복구할 수 없습니다. 메뉴의 "백업 내보내기"로 백업 파일을 보관해 두세요.
+          </p>
+        </div>
+
+        <form class="lock-section" id="lockChangeForm" data-section="change" hidden>
+          <label>
+            현재 비밀번호
+            <input type="password" id="lockCurPw" autocomplete="current-password" required />
+          </label>
+          <label>
+            새 비밀번호 (6자 이상)
+            <input type="password" id="lockChgPw" autocomplete="new-password" required />
+          </label>
+          <label>
+            새 비밀번호 확인
+            <input type="password" id="lockChgPw2" autocomplete="new-password" required />
+          </label>
+          <p class="lock-error" hidden></p>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-lock-back>뒤로</button>
+            <button type="submit" class="primary-btn">변경</button>
+          </div>
+        </form>
+
+        <form class="lock-section" id="lockDisableForm" data-section="disable" hidden>
+          <p class="lock-desc">
+            잠금을 끄면 일기가 암호화되지 않은 상태로 저장됩니다. 계속하려면 현재 비밀번호를 입력하세요.
+          </p>
+          <label>
+            현재 비밀번호
+            <input type="password" id="lockOffPw" autocomplete="current-password" required />
+          </label>
+          <p class="lock-error" hidden></p>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-lock-back>뒤로</button>
+            <button type="submit" class="primary-btn">잠금 끄기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <input type="file" id="importFile" accept=".json,application/json" hidden />
+    <div class="toast" id="toast" role="status" hidden></div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
